@@ -9,3 +9,6 @@ Code used to analyze malaria prevalence data from 2013-2017 field studies. For d
 3. Golden CD, Rice BL, Randriamady HJ, Vonona AM, Randrianasolo JF, Tafangy AN, et al. Study Protocol: A Cross-Sectional Examination of Socio-Demographic and Ecological Determinants of Nutrition and Disease Across Madagascar. Front Public Health. 2020;8:500.
 
 In addition to the code used in data cleaning and analysis, this repository will contain a the csv file with the malaria infection outcome line data used in analysis
+
+Benjamin L. Rice
+2021
