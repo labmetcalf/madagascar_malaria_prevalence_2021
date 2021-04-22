@@ -1,0 +1,46 @@
+site_id,site_code,time_point_code,site_tp,time_point_date,sample_date_start,sample_date_end,region_id,region_name,region_peak_mo,n_site,n_rdt_pos_site,prev_site,prev.2_10,n_hh_site,prev_hh,adj_cons_area,dist_to_cons_area,district,commune
+101,NE.01,1,101.1,01 Jul 2013 - 08 Aug 2013,2013-07-04,2013-08-08,1,R1 (NE) Maroantsetra,April,374,39,10.43,10.2,85,37.65,Makira Natural Park,4.1 km,Maroantsetra,Antsirabe Sahatany
+101,NE.01,2,101.2,10 Nov 2013 - 31 Dec 2013,2013-11-14,2013-12-27,1,R1 (NE) Maroantsetra,April,275,61,22.18,17.33,77,54.55,Makira Natural Park,4.1 km,Maroantsetra,Antsirabe Sahatany
+101,NE.01,3,101.3,05 Mar 2014 - 28 Mar 2014,2014-03-13,2014-03-28,1,R1 (NE) Maroantsetra,April,276,97,35.14,26.67,77,71.43,Makira Natural Park,4.1 km,Maroantsetra,Antsirabe Sahatany
+102,NE.02,1,102.1,01 Jul 2013 - 08 Aug 2013,2013-07-01,2013-08-01,1,R1 (NE) Maroantsetra,April,266,44,16.54,17.07,53,49.06,Makira Natural Park,2.4 km,Maroantsetra,Antsirabe Sahatany
+102,NE.02,2,102.2,10 Nov 2013 - 31 Dec 2013,2013-11-04,2013-11-14,1,R1 (NE) Maroantsetra,April,217,56,25.81,30.43,47,63.83,Makira Natural Park,2.4 km,Maroantsetra,Antsirabe Sahatany
+102,NE.02,3,102.3,05 Mar 2014 - 28 Mar 2014,2014-03-05,2014-03-14,1,R1 (NE) Maroantsetra,April,200,47,23.5,14.75,46,67.39,Makira Natural Park,2.4 km,Maroantsetra,Antsirabe Sahatany
+103,NE.03,1,103.1,09 Aug 2016 - 12 Sep 2016,2016-09-01,2016-09-07,1,R1 (NE) Maroantsetra,April,221,10,4.52,4.29,46,15.22,Makira Natural Park,13.2 km,Maroantsetra,Rantabe
+103,NE.03,2,103.2,27 Oct 2016 - 04 Dec 2016,2016-10-27,2016-11-01,1,R1 (NE) Maroantsetra,April,175,3,1.71,3.17,40,7.5,Makira Natural Park,13.2 km,Maroantsetra,Rantabe
+103,NE.03,3,103.3,April 2017,NA,NA,1,R1 (NE) Maroantsetra,April,166,2,1.2,1.85,41,4.88,Makira Natural Park,13.2 km,Maroantsetra,Rantabe
+104,NE.04,1,104.1,09 Aug 2016 - 12 Sep 2016,2016-08-26,2016-08-31,1,R1 (NE) Maroantsetra,April,166,27,16.27,22,43,41.86,Makira Natural Park,8.1 km,Maroantsetra,Anandrivola
+104,NE.04,2,104.2,27 Oct 2016 - 04 Dec 2016,2016-11-07,2016-11-13,1,R1 (NE) Maroantsetra,April,139,8,5.76,12.2,36,22.22,Makira Natural Park,8.1 km,Maroantsetra,Anandrivola
+104,NE.04,3,104.3,April 2017,NA,NA,1,R1 (NE) Maroantsetra,April,141,23,16.31,22.5,38,42.11,Makira Natural Park,8.1 km,Maroantsetra,Anandrivola
+105,NE.05,1,105.1,09 Aug 2016 - 12 Sep 2016,2016-08-17,2016-08-23,1,R1 (NE) Maroantsetra,April,157,8,5.1,4.88,40,17.5,Masoala National Park,3.0 km,Maroantsetra,Mahalevona
+105,NE.05,2,105.2,27 Oct 2016 - 04 Dec 2016,2016-11-24,2016-11-28,1,R1 (NE) Maroantsetra,April,107,6,5.61,6.67,28,17.86,Masoala National Park,3.0 km,Maroantsetra,Mahalevona
+105,NE.05,3,105.3,April 2017,NA,NA,1,R1 (NE) Maroantsetra,April,171,6,3.51,4.88,46,13.04,Masoala National Park,3.0 km,Maroantsetra,Mahalevona
+106,NE.06,1,106.1,09 Aug 2016 - 12 Sep 2016,2016-08-09,2016-08-15,1,R1 (NE) Maroantsetra,April,179,50,27.93,27.27,41,48.78,Masoala National Park,1.2 km,Maroantsetra,Ambanizana
+106,NE.06,2,106.2,27 Oct 2016 - 04 Dec 2016,2016-11-30,2016-12-04,1,R1 (NE) Maroantsetra,April,120,5,4.17,6.82,30,13.33,Masoala National Park,1.2 km,Maroantsetra,Ambanizana
+106,NE.06,3,106.3,April 2017,NA,NA,1,R1 (NE) Maroantsetra,April,172,4,2.33,1.92,41,9.76,Masoala National Park,1.2 km,Maroantsetra,Ambanizana
+107,NE.07,1,107.1,09 Aug 2016 - 12 Sep 2016,2016-09-08,2016-09-12,1,R1 (NE) Maroantsetra,April,107,1,0.93,3.33,23,4.35,Makira Natural Park,9.2 km,Maroantsetra,Ankofa
+107,NE.07,2,107.2,27 Oct 2016 - 04 Dec 2016,2016-11-14,2016-11-18,1,R1 (NE) Maroantsetra,April,98,1,1.02,0,22,4.55,Makira Natural Park,9.2 km,Maroantsetra,Ankofa
+107,NE.07,3,107.3,April 2017,NA,NA,1,R1 (NE) Maroantsetra,April,107,1,0.93,0,22,4.55,Makira Natural Park,9.2 km,Maroantsetra,Ankofa
+201,SE.01,3,201.3,27 Jan - 11 Aug 2017,2017-01-27,2017-02-01,2,R2 (SE) Mananjary,January,158,8,5.06,6,45,13.33,Kianjavato Forest,48.2 km,Mananjary,Tsaravary
+202,SE.02,3,202.3,27 Jan - 11 Aug 2017,2017-02-04,2017-02-08,2,R2 (SE) Mananjary,January,233,14,6.01,4.85,50,18,Kianjavato Forest,60.9 km,Mananjary,Mahatsara Atsimo
+203,SE.03,3,203.3,27 Jan - 11 Aug 2017,2017-02-11,2017-02-15,2,R2 (SE) Mananjary,January,247,9,3.64,3.49,50,10,Kianjavato Forest,54.0 km,Mananjary,Mahatsara Atsimo
+204,SE.04,3,204.3,27 Jan - 11 Aug 2017,2017-02-20,2017-02-24,2,R2 (SE) Mananjary,January,273,45,16.48,20.87,51,50.98,Kianjavato Forest,49.3 km,Mananjary,Ankatafana
+205,SE.05,3,205.3,27 Jan - 11 Aug 2017,2017-02-27,2017-03-02,2,R2 (SE) Mananjary,January,284,116,40.85,59.65,50,90,Kianjavato Forest,44.7 km,Mananjary,Ankatafana
+206,SE.06,3,206.3,27 Jan - 11 Aug 2017,2017-03-07,2017-03-10,2,R2 (SE) Mananjary,January,275,127,46.18,55.21,51,92.16,Kianjavato Forest,26.8 km,Mananjary,Antsenavolo
+301,SW.01,3,301.3,27 Jan - 11 Aug 2017,2017-03-21,2017-03-25,3,R3 (SW) Toliara,May,263,5,1.9,0,50,8,Ifaty Forest / Ranobe PK32,9.4 km,Toliara II,Tsianisiha
+302,SW.02,3,302.3,27 Jan - 11 Aug 2017,2017-03-28,2017-03-30,3,R3 (SW) Toliara,May,239,3,1.26,0.83,51,3.92,Ifaty Forest / Ranobe PK32,13.4 km,Toliara II,Maromiandra
+303,SW.03,3,303.3,27 Jan - 11 Aug 2017,2017-04-04,2017-04-06,3,R3 (SW) Toliara,May,253,44,17.39,20.51,49,57.14,Ifaty Forest / Ranobe PK32,15.2 km,Toliara II,Maromiandra
+304,SW.04,3,304.3,27 Jan - 11 Aug 2017,2017-04-13,2017-04-16,3,R3 (SW) Toliara,May,246,1,0.41,0,50,2,Ifaty Forest / Ranobe PK32,1.9 km,Toliara II,Belalanda
+305,SW.05,3,305.3,27 Jan - 11 Aug 2017,2017-04-20,2017-04-23,3,R3 (SW) Toliara,May,238,10,4.2,2.7,50,14,Ifaty Forest / Ranobe PK32,4.6 km,Toliara II,Belalanda
+306,SW.06,3,306.3,27 Jan - 11 Aug 2017,2017-04-27,2017-04-29,3,R3 (SW) Toliara,May,170,11,6.47,9.59,41,19.51,Ifaty Forest / Ranobe PK32,8.5 km,Toliara II,Belalanda
+401,WC.01,3,401.3,27 Jan - 11 Aug 2017,2017-05-09,2017-05-12,4,R4 (WC) Morombe,April,213,66,30.99,34.62,49,65.31,Mangoky-Ihotry Protected Harmonious Landscape,1.1 km,Morombe,Morombe
+402,WC.02,3,402.3,27 Jan - 11 Aug 2017,2017-05-16,2017-05-19,4,R4 (WC) Morombe,April,156,50,32.05,44.07,35,71.43,Mangoky-Ihotry Protected Harmonious Landscape,2.3 km,Morombe,Morombe
+403,WC.03,3,403.3,27 Jan - 11 Aug 2017,2017-05-23,2017-05-25,4,R4 (WC) Morombe,April,189,66,34.92,43.42,46,58.7,Mangoky-Ihotry Protected Harmonious Landscape,3.3 km,Morombe,Morombe
+404,WC.04,3,404.3,27 Jan - 11 Aug 2017,2017-06-02,2017-06-04,4,R4 (WC) Morombe,April,244,76,31.15,34.34,50,70,Mikea National Park,10.2 km,Morombe,Basibasy
+405,WC.05,3,405.3,27 Jan - 11 Aug 2017,2017-06-09,2017-06-12,4,R4 (WC) Morombe,April,233,75,32.19,43.3,50,66,Mikea National Park,6.3 km,Morombe,Basibasy
+406,WC.06,3,406.3,27 Jan - 11 Aug 2017,2017-06-16,2017-06-18,4,R4 (WC) Morombe,April,271,51,18.82,24.8,50,52,Mikea National Park,3.4 km,Morombe,Basibasy
+501,CP.01,3,501.3,27 Jan - 11 Aug 2017,2017-07-08,2017-07-11,5,R5 (CP) Ambositra,May,244,1,0.41,0,33,3.03,Marolambo National Park,24.2 km,Fandriana,Alakamisy Ambohimahazo
+502,CP.02,3,502.3,27 Jan - 11 Aug 2017,2017-07-15,2017-07-18,5,R5 (CP) Ambositra,May,253,2,0.79,1.04,33,6.06,Marolambo National Park,23.9 km,Fandriana,Alakamisy Ambohimahazo
+503,CP.03,3,503.3,27 Jan - 11 Aug 2017,2017-07-21,2017-07-23,5,R5 (CP) Ambositra,May,241,2,0.83,0.97,43,4.65,Marolambo National Park,24.5 km,Fandriana,Alakamisy Ambohimahazo
+504,CP.04,3,504.3,27 Jan - 11 Aug 2017,2017-07-28,2017-07-30,5,R5 (CP) Ambositra,May,247,0,0,0,42,0,Ibity Massif Protected Harmonious Landscape,22.1 km,Ambatofinandrahana,Ambondromisotra
+505,CP.05,3,505.3,27 Jan - 11 Aug 2017,2017-08-04,2017-08-06,5,R5 (CP) Ambositra,May,231,1,0.43,1.32,52,1.92,Ibity Massif Protected Harmonious Landscape,26.9 km,Ambositra,Ilaka Centre
+506,CP.06,3,506.3,27 Jan - 11 Aug 2017,2017-08-09,2017-08-11,5,R5 (CP) Ambositra,May,151,0,0,0,38,0,Ibity Massif Protected Harmonious Landscape,26.4 km,Ambositra,Ilaka Centre

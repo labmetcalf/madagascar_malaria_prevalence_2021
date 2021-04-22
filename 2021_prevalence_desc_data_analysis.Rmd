@@ -1,0 +1,1358 @@
+---
+title: "Madagascar 2013-2017 Prevalence Description Manuscript: Data Analysis"
+author: "Benny Rice"
+date: "05/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE, eval = TRUE}
+knitr::opts_chunk$set(echo = FALSE, eval = FALSE)
+```
+
+***
+***
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+## HEADER INFO
+
+- Benny Rice | Department of Ecology and Evolutionary Biology | Princeton University
+- b.rice@princeton.edu
+- Code associated with analysis of data from MAHERY malaria prevalence RDT surveys
+- Apologies in advance for amateurish code (ie all the loops and clunkiness)
+
+</div>
+
+***
+
+(Set up: Loading necessary libraries)
+```{r i1, echo = FALSE, message = FALSE, eval = TRUE}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(reshape2)
+library(ggpubr)
+library(geosphere)
+library(ggalt)
+library(ggrepel)
+library(here)
+library(gridExtra)
+library(lemon)
+library(lubridate)
+```
+
+***
+***
+
+#### OUTLINE:
+
+- Section 1:
+- Section 2:
+- Section 3:
+- Section 4:
+- Section 5:
+
+
+**FIX** Update outline at the end (add figures and tables interspersed ^)
+
+
+***
+***
+
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+### Section 1 | Reading in RDT outcome data
+
+</div>
+
+***
+***
+
+```{r 1.01, eval = TRUE}
+#Reading in data and formatting sample date
+rdt_data <- read.csv(here("rdt_data.csv")) %>% mutate(sample_date = ymd(sample_date))
+```
+
+
+
+***
+***
+
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+### Section 2 | Summarizing prevalence by site (and time point)
+
+</div>
+
+***
+***
+
+##### (2.01) Making the `prev_by_site_table`:
+
+- Data table columns:
+    - `region_id`, `region_name`
+    - `site_code`
+    - `time_point_code`, `time_point_date`
+    - `n_hh_site`: Number of households for the site
+    - `n_site`: Sample size for the site
+    - `n_rdt_pos_site`: Number of RDT positive individuals at the site
+    - `prev_site`: % of sampled individuals that are RDT positive at the site
+
+```{r 2.01, eval = TRUE}
+#Making the prev_by_site_table
+prev_by_site_table <- rdt_data %>% group_by(site_id, time_point_code, time_point_date) %>% summarize(
+  region_id      = unique(region_id), region_name = unique(region_name),
+  site_code      = unique(site_code),
+  n_site         = length(rdt_result),
+  n_rdt_pos_site = sum(rdt_result),
+  prev_site      = sum(rdt_result) / length(rdt_result) * 100, .groups = "drop") %>% ungroup()
+#Printing the prev_by_site_table
+kable(prev_by_site_table, caption = "Table 2.01: Prevalence by site (and time point") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 8)
+```
+
+##### (2.02) Visualizing the prevalence by site
+
+**Figure 2.02** | Site-site variation in prevalence
+
+- Only TP3 (rainy season) used for Region 1 (Maroantsetra)
+
+```{r 2.02, eval = TRUE}
+pf.mods <- list(
+  geom_text(aes(label = site_code, x = -3), color = "#616161"),
+  geom_text(aes(label = round(prev_site, 2)), 
+            position=position_dodge(width=0.9), 
+            hjust = -0.1,
+            size = 3,
+            color = "#616161"),
+  xlim(-3, 50),
+  theme(strip.background = element_blank(), strip.text.x = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_blank(),
+        axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+        panel.background = element_rect(fill = "white", color = "lightgray"))
+)
+
+d.pf1 <- prev_by_site_table %>% filter(time_point_code == 3) %>% 
+  group_by(region_id) %>% mutate(plot_order = order(order(prev_site))) %>% ungroup()
+
+r1.pf1 <- d.pf1 %>% filter(region_id == 1) %>%
+  ggplot(aes(x = prev_site, y = reorder(site_code, plot_order))) +
+  geom_col(position ="identity", fill = "#C55766") +
+  pf.mods
+r2.pf1 <- d.pf1 %>% filter(region_id == 2) %>%
+  ggplot(aes(x = prev_site, y = reorder(site_code, plot_order))) +
+  geom_col(position ="identity", fill = "#C55766") +
+  pf.mods
+r3.pf1 <- d.pf1 %>% filter(region_id == 3) %>%
+  ggplot(aes(x = prev_site, y = reorder(site_code, plot_order))) +
+  geom_col(position ="identity", fill = "#C55766") +
+  pf.mods
+r4.pf1 <- d.pf1 %>% filter(region_id == 4) %>%
+  ggplot(aes(x = prev_site, y = reorder(site_code, plot_order))) +
+  geom_col(position ="identity", fill = "#C55766") +
+  pf.mods
+r5.pf1 <- d.pf1 %>% filter(region_id == 5) %>%
+  ggplot(aes(x = prev_site, y = reorder(site_code, plot_order))) +
+  geom_col(position ="identity", fill = "#C55766") +
+  pf.mods
+
+r1.pf1
+r2.pf1
+r3.pf1
+r4.pf1
+r5.pf1
+
+```
+
+**Calculating CIs** for select sites' prevalence estimates
+```{r 2.03, eval = TRUE}
+#All individuals
+prev_by_site_table.201 <- prev_by_site_table %>% filter(site_id == 201)
+prev_by_site_table.205 <- prev_by_site_table %>% filter(site_id == 205)
+prev_by_site_table.302 <- prev_by_site_table %>% filter(site_id == 302)
+prev_by_site_table.303 <- prev_by_site_table %>% filter(site_id == 303)
+
+prop.test(prev_by_site_table.201$n_rdt_pos_site, prev_by_site_table.201$n_site, correct=FALSE)
+prop.test(prev_by_site_table.205$n_rdt_pos_site, prev_by_site_table.205$n_site, correct=FALSE)
+prop.test(prev_by_site_table.302$n_rdt_pos_site, prev_by_site_table.302$n_site, correct=FALSE)
+prop.test(prev_by_site_table.303$n_rdt_pos_site, prev_by_site_table.303$n_site, correct=FALSE)
+
+#0-15 yos only
+df.CIs <- rdt_data %>% filter(ageyears < 15.1) %>% filter(site_id %in% c(201, 205, 302, 303)) %>% group_by(site_id) %>%
+  summarize(n = length(site_id), n_rdt_pos_site = sum(rdt_result), prev = n_rdt_pos_site/n*100)
+
+prop.test(3,   69, correct=FALSE)
+prop.test(84, 159, correct=FALSE)
+prop.test(2,  151, correct=FALSE)
+prop.test(30, 156, correct=FALSE)
+```
+
+
+***
+***
+
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+### Section 3 | Summarizing prevalence by household
+
+</div>
+
+***
+***
+
+##### (3.01) Making the `hh_rdt_pos_table`:
+
+- For each household, calculate number of individuals sampled and number of RDT positives
+- Data table columns:
+  - `hh_id`
+  - `time_point_code`
+  - `region_id`, `region_name`
+  - `site_code`
+  - `hh_ind_count`: Number of individuals sampled in the household (household size)
+  - `hh_rdt_pos_count`: Number of RDT positive individuals sampled in the household
+  - `hh_prevalence`: % of individuals RDT positive in the household
+  
+```{r 3.01, eval = TRUE}
+hh_rdt_pos_table <- rdt_data %>% group_by(hh_id, time_point_code) %>% summarize(
+  region_id        = unique(region_id), region_name = unique(region_name),
+  site_code        = unique(site_code),
+  site_id          = unique(site_id),
+  hh_ind_count     = length(hh_id),
+  hh_rdt_pos_count = sum(rdt_result),
+  hh_prevalence    = sum(rdt_result) / length(hh_id) * 100, .groups = "drop") %>% ungroup()
+#Removing households with only 1 individual who completed the blood sample
+hh_rdt_pos_table <- hh_rdt_pos_table[hh_rdt_pos_table$hh_ind_count > 1, ]
+#Previewing the hh_rdt_pos_table
+hh_rdt_pos_table_fp <- hh_rdt_pos_table[1:200, ]
+kable(hh_rdt_pos_table_fp, caption = "Table 3.01: Preview of the hh_rdt_pos_table") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 8) %>% scroll_box(width = "100%", height = "300px")
+```
+
+***
+
+##### (3.02) Making the `hh_infs_site_table`:
+
+- For each site (and time point), number and % of households with 0, 1, 2, 3 infections and 1+, 2+, 3+, and 4+ infections
+- Data table columns:
+  - `site_code`
+  - `time_point_code`
+  - `region_id`
+  - `n_hh_site`: Number of households for the site
+  - `n_hh_0_pos`...`prev_hh_4plus_pos`: Number and percentage of households with a given number of positives
+
+```{r 3.02.1, eval = TRUE}
+hh_infs_site_table <- hh_rdt_pos_table %>% group_by(site_id, time_point_code) %>% summarize(
+  region_id         = unique(region_id), region_name = unique(region_name), site_code = unique(site_code),
+  n_hh_site         = length(hh_id),
+  
+  n_hh_0_pos        = length(which(hh_rdt_pos_count == '0')),
+  n_hh_1_pos        = length(which(hh_rdt_pos_count == '1')),
+  n_hh_2_pos        = length(which(hh_rdt_pos_count == '2')),
+  n_hh_3_pos        = length(which(hh_rdt_pos_count == '3')),
+  
+  n_hh_1plus_pos    = length(which(hh_rdt_pos_count >= '1')),
+  n_hh_2plus_pos    = length(which(hh_rdt_pos_count >= '2')),
+  n_hh_3plus_pos    = length(which(hh_rdt_pos_count >= '3')),
+  n_hh_4plus_pos    = length(which(hh_rdt_pos_count >= '4')),
+  
+  prev_hh_0_pos     = n_hh_0_pos     / n_hh_site * 100,
+  prev_hh_1_pos     = n_hh_1_pos     / n_hh_site * 100,
+  prev_hh_2_pos     = n_hh_2_pos     / n_hh_site * 100,
+  prev_hh_3_pos     = n_hh_3_pos     / n_hh_site * 100,
+  
+  prev_hh_1plus_pos = n_hh_1plus_pos / n_hh_site * 100,
+  prev_hh_2plus_pos = n_hh_2plus_pos / n_hh_site * 100,
+  prev_hh_3plus_pos = n_hh_3plus_pos / n_hh_site * 100,
+  prev_hh_4plus_pos = n_hh_4plus_pos / n_hh_site * 100, .groups = "drop") %>% ungroup()
+
+#Printing the hh_infs_site_table
+kable(hh_infs_site_table, caption = "Table 3.02.1: Infections by households (hh_infs_site_table)") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 8) %>% scroll_box(width = "100%", height = "300px")
+```
+
+Combining the `prev_by_site_table` with the `hh_infs_site_table` to make a `prev_by_site_and_hh_table`
+
+```{r 3.02.2, eval = TRUE}
+prev_by_site_and_hh_table <- full_join(prev_by_site_table %>% mutate(site_tp = paste0(site_id, ".", time_point_code)), 
+                                       hh_infs_site_table %>% mutate(site_tp = paste0(site_id, ".", time_point_code)) %>%
+                                         select(site_tp, n_hh_site, 
+                                                prev_hh_0_pos, prev_hh_1_pos, prev_hh_2_pos, prev_hh_3_pos, prev_hh_4plus_pos),
+                                       by = "site_tp")
+#Printing the prev_by_site_and_hh_table
+kable(prev_by_site_and_hh_table, caption = "Table 3.02: Infections by site and household (prev_by_site_and_hh_table)") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 8) %>% scroll_box(width = "100%", height = "300px")
+```
+
+***
+
+##### (3.03) Visualizing the observed distribution of infections among households
+
+Using stacked bars to show the % of households with a given number of infections
+
+- Selecting time point 3 (March-April) for Region 1 to standardize across regions
+
+(3.03.1) Arranging a data table for plotting: SITE
+```{r 3.03.1, eval = TRUE}
+#Selecting time point 3 to standardize across regions
+plot.hh_infs_site_table <- hh_infs_site_table[hh_infs_site_table$time_point_code == 3, ]
+#Selecting relevant columns from the hh_infs_site_table:
+plot.hh_infs_site_table <- plot.hh_infs_site_table %>% select(
+  region_id, region_name,
+  site_id, site_code,
+  n_hh_site,
+  prev_hh_0_pos:prev_hh_3_pos,
+  prev_hh_4plus_pos)
+```
+
+
+(3.03.2) Arranging a data table for plotting: REGION
+```{r 3.03.2, eval = TRUE}
+#Selecting time point 3 to standardize across regions
+plot.hh_infs_region_table <- hh_infs_site_table[hh_infs_site_table$time_point_code == 3, ]
+#Calculating the overall regional average for 0, 1, 2, 3, 4+ infections: Using group_by(region_id) on hh_infs_site_table
+plot.hh_infs_region_table <- plot.hh_infs_region_table %>% group_by(region_id, region_name) %>% summarize(
+  n_hh_region       = sum(n_hh_site),
+  prev_hh_0_pos     = sum(n_hh_0_pos)     / n_hh_region * 100,
+  prev_hh_1_pos     = sum(n_hh_1_pos)     / n_hh_region * 100,
+  prev_hh_2_pos     = sum(n_hh_2_pos)     / n_hh_region * 100,
+  prev_hh_3_pos     = sum(n_hh_3_pos)     / n_hh_region * 100,
+  prev_hh_4plus_pos = sum(n_hh_4plus_pos) / n_hh_region * 100, .groups = "drop") %>% ungroup()
+```
+
+***
+
+**Figure 3.03.3** | % of households with a given number of infections, by region and site
+
+```{r 3.03.3, eval = TRUE, fig.width = 10, warning = FALSE}
+#REGION
+#Melting the data to get it into a format to plot (after trimming it)
+plot.hh_infs_region_table <- plot.hh_infs_region_table %>% 
+  select(region_id, region_name, prev_hh_0_pos:prev_hh_4plus_pos) %>%
+  melt(id.vars = c("region_id", "region_name")) %>%
+  mutate(Infections = case_when(
+    variable  == 'prev_hh_0_pos'     ~ "0",
+    variable  == 'prev_hh_1_pos'     ~ "1",
+    variable  == 'prev_hh_2_pos'     ~ "2",
+    variable  == 'prev_hh_3_pos'     ~ "3",
+    variable  == 'prev_hh_4plus_pos' ~ "4+"
+    ),
+    prev_variable = variable,
+    prev_value = value) %>%
+  select(region_id, region_name, Infections, prev_variable, prev_value)
+
+#SITE
+#Melting the data to get it into a format to plot (after trimming it)
+plot.hh_infs_site_table <- plot.hh_infs_site_table %>% 
+  select(site_id, site_code, region_name, prev_hh_0_pos:prev_hh_4plus_pos) %>%
+  #Specifying order to plot by ranking sites by prevalence from highest to lowest within a region
+  group_by(region_name) %>% mutate(plot_order = order(order(prev_hh_0_pos))) %>% ungroup() %>%
+  melt(id.vars = c("site_id", "site_code", "region_name", "plot_order")) %>%
+  mutate(Infections = case_when(
+    variable  == 'prev_hh_0_pos'     ~ "0",
+    variable  == 'prev_hh_1_pos'     ~ "1",
+    variable  == 'prev_hh_2_pos'     ~ "2",
+    variable  == 'prev_hh_3_pos'     ~ "3",
+    variable  == 'prev_hh_4plus_pos' ~ "4+"),
+    prev_variable = variable,
+    prev_value = value) %>%
+  select(site_id, site_code, region_name, Infections, prev_variable, prev_value, plot_order)
+
+
+#Plotting the region data
+pHHr <- plot.hh_infs_region_table %>% ggplot(aes(x = region_id, y = prev_value, fill = Infections)) +
+  geom_bar(stat='identity', width=0.8) + 
+  scale_fill_manual(values=c("#D6D6D6", "#E74C3C", "#A93226", "#922B21", "#641E16")) +
+  theme(legend.position="top") +
+  labs(y = "Percent of households") +
+  facet_wrap(~region_name, nrow = 1, scales = "free_x") +
+  rremove("grid") + rremove("x.ticks") + rremove("x.text") + rremove("xlab") +
+  theme(panel.background = element_rect(fill = "gray97"), 
+        strip.background = element_rect(fill = "#7E7E7E59"))
+
+#Plotting the site data
+pHHs <- plot.hh_infs_site_table %>% ggplot(aes(x = reorder(site_code, -plot_order), y = prev_value, fill = Infections)) +
+  geom_bar(stat='identity', width=0.75) + 
+  scale_fill_manual(values=c("#D6D6D6", "#E74C3C", "#A93226", "#922B21", "#641E16")) +
+  theme(legend.position="top") +
+  labs(y = "Percent of households") +
+  facet_wrap(~region_name, nrow = 1, scales = "free_x") +
+  rremove("grid") + rremove("x.ticks") + rremove("legend") + rremove("x.text") + rremove("xlab") +
+  theme(panel.background = element_rect(fill = "gray97"), 
+        strip.background = element_blank(), strip.text.x = element_blank()) +
+  geom_text(aes(label = site_code, y = -5), angle = 90, color = "#707070B8", size = 2)
+```
+
+Plotting in a combined object using grid.arrange()
+```{r 3.03.4, eval = TRUE, fig.width = 10, fig.height = 10, warning = FALSE}
+grid.arrange(pHHr, pHHs, nrow = 2)
+```
+
+***
+***
+
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+### Section 4 | Prevalence by distance analysis
+
+</div>
+
+***
+***
+
+- Calculating distance between GPS coordinates in r:
+      - [Geosphere package](ftp://cran.r-project.org/pub/R/web/packages/geosphere/geosphere.pdf)
+      - distGeo() accounts for ellipsoid effects
+- Calculating pairwise difference in prevalence
+  - Using the dist() function
+- A list of approximate village mid-points was made using household GPS coordinates and picking a central spot on Google Earth
+
+***
+
+#### (4.01) Calculating the pairwise difference in prevalence between sites and the pairwise geographic distance between sites
+
+Standardizing Region 1 (NE - Maroantsetra) `site_id`s:
+
+| Makira_study_site_id | site_code | code used here |
+| -------------------- | --------- | -------------- |
+| `101`                | `NE.01`   | `NE.01`        |
+| `102`                | `NE.02`   | `NE.02`        |
+
+| Antongil_study_site_id | site_code | code used here |
+| ---------------------- | --------- | -------------- |
+| `111`                  | `NE.11`   | `NE.03`        |
+| `112`                  | `NE.12`   | `NE.04`        |
+| `113`                  | `NE.13`   | `NE.05`        |
+| `114`                  | `NE.14`   | `NE.06`        |
+| `115`                  | `NE.15`   | `NE.07`        |
+
+
+(4.01.1) Importing a file that contains the spatial midpoint (latitude and longitude) for each site
+```{r 4.01.1, eval = TRUE}
+gps_midpoint_data <- read.csv(here("Site midpoints for ease of reference Ben 20210201.csv")) %>% 
+  select(site_id, latitude, longitude) %>%
+  #Adjusting site_ids
+  mutate(site_id = case_when(
+           site_id == 111 ~ 103,
+           site_id == 112 ~ 104,
+           site_id == 113 ~ 105,
+           site_id == 114 ~ 106,
+           site_id == 115 ~ 107,
+           TRUE ~ as.numeric(site_id)))
+```
+
+(4.01.2) Joining the gps data to prevalence data for the sites
+```{r 4.01.2, eval = TRUE}
+#Joining to the prev_by_site_table
+#keeping only time_point 3 for NE to align seasonally
+site_prev_gps_data <- full_join(prev_by_site_table %>% filter(time_point_code == 3) %>% select(site_id, prev_site), 
+                                gps_midpoint_data, by = "site_id")
+```
+
+(4.01.3) Determining magnitude of all pairwise differences in prevalence between sites
+```{r 4.01.3, eval = TRUE}
+#Determining the number of pairwise comparisons possible for 31 sites
+# [n(n-1)]/2 = (31*(31-1))/2 = 465 = sum(n-1, n-2, n-3, ... n-(n-1)) = sum(30:1)
+
+#Calculating all possible pairwise differences in prevalence using dist(), store as a vector prev_pw_dist
+# Using as.numeric() to convert the output from a pairwise distance matrix to a vector
+#  Vector is Site1-Site2, Site1-Site3... etc and length = the number of pairwise comparisons possible for X sites
+v_prev_pw_dist <- as.numeric(dist(site_prev_gps_data$prev_site))
+```
+
+(4.01.4) Determining all geographic distances between sites
+```{r 4.01.4, eval = TRUE}
+#Defining a function to calculate the geographic distance between all sites' midpoints
+# Inputs are vectors for site_ids, longitude, and latitude
+#  Output is a data frame with site_ids of the compared sites, and all pairwise geographic distances in the form:
+#   Site1-Site2, Site1-Site3...Site1-Site24, Site2-Site3 etc and 
+#    length = the number of unique pairwise comparisons possible for X sites
+#    Using the distGeo() function from the geosphere package
+function.calc_geodist_xy <- function(site_ids, longitude, latitude){
+  #Storing the site_ids, lon, and lat data in easier to reference vectors
+  site_ids   <- site_ids
+  v_x_lon    <- longitude
+  v_y_lat    <- latitude
+  n_sites    <- length(site_ids)
+  #Creating a vector to hold the calculated pairwise geographic distances
+  calc_geographic_pw_dist <- rep(NA, (n_sites * (n_sites - 1)) / 2)
+  #Creating empty lists to hold the indices (used to specify which sites to compare pairwise)
+  v_pairing_indices_i <- list()
+  v_pairing_indices_j <- list()
+  #Filling the indices lists with the same pattern as in the pairwise difference in prevalence vector
+  # Comparisons: 1-2, 1-3...1-24, 2-3, 2-4...2-24, 3-4, 3-5...2-34...23-24 
+  #(i holds the index of the left hand site in the comparison)
+  for(i in 1:n_sites){
+    v_pairing_indices_i[[i]] <- rep(i, each = n_sites - i)
+  }
+  # (j holds the index of the right hand site in the comparison)
+  for(j in 1:(n_sites-1)){
+    v_pairing_indices_j[[j]] <- (1+j):n_sites
+  }
+  # Combining i and j indices into a data frame
+  df_pairing_indices <- data.frame(i_c = unlist(v_pairing_indices_i), j_c = unlist(v_pairing_indices_j))
+  #Looping through the list of comparisons to be made (specified by compare site i to site j)
+  # Using distGeo() to find the scale in m (dividing by 1000 to convert to km)
+  for(k in 1:length(df_pairing_indices$i_c)){
+    calc_geographic_pw_dist[k] <- distGeo(
+      c(v_x_lon[df_pairing_indices[k, 1]], v_y_lat[df_pairing_indices[k, 1]]), 
+      c(v_x_lon[df_pairing_indices[k, 2]], v_y_lat[df_pairing_indices[k, 2]])) / 1000
+  }
+  #Adding the site comparisons specified by the i and j indices to the calc_geographic_pw_dist results
+  # Repeating the site_ids in the same pattern as the i and j indices
+  sites_i <- list()
+  for(a in 1:n_sites){
+    sites_i[[a]] <- rep(site_ids[a], each = n_sites - a)
+  }
+  sites_j <- list()
+  for(b in 1:(n_sites-1)){
+    sites_j[[b]] <- site_ids[(1+b):n_sites]
+  }
+  #Binding the site_ids and calc_geographic_pw_dist results
+  df_geographic_pw_dist <- data.frame(site_i = unlist(sites_i), site_j = unlist(sites_j), calc_geographic_pw_dist)
+  
+  return(df_geographic_pw_dist)
+}
+
+#Calling the function.calc_geodist_xy to calculate pairwise geographic distances between sites' GPS midpoints
+#Inputs are site_ids, longitude (x), and latitude (y) data
+df_geographic_pw_dist <- function.calc_geodist_xy(site_prev_gps_data$site_id, site_prev_gps_data$longitude, site_prev_gps_data$latitude)
+```
+
+(4.01.5) Creating the difference in prevalence vs geographic distance table
+```{r 4.01.5, eval = TRUE}
+#Binding prevs_pw_dist to the df_geographic_pw_dist)
+df_prev_by_distance_table <- data.frame(df_geographic_pw_dist, prev_pw_dist = v_prev_pw_dist)
+
+#Previewing the pw_distance_table
+df_prev_by_distance_table_fp <- df_prev_by_distance_table[1:100, ]
+kable(df_prev_by_distance_table_fp, caption = "Table 5.01.3 Preview of prevalence vs distance data") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 11, full_width = F, position = "left")%>% 
+  scroll_box(width = "100%", height = "300px")
+```
+
+***
+
+#### (4.02) Visualing the variation in prevalence over geographic distance
+
+**Figure 4.02** | Prevalence by distance
+  - X-axis: Distance between communities (in km)
+  - Y-axis: Magnitude of difference in prevalence (abs(Prev X1 - Prev X2))
+
+(4.02) Plotting the difference in prevalence vs geographic distance table
+```{r 4.02.1, eval = TRUE, fig.height=5, fig.width = 10}
+pPBD.all <- df_prev_by_distance_table %>% ggplot(aes(x = calc_geographic_pw_dist, y = prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "(All regions) Geographic distance (km)", limits=c(0, 1100), breaks = seq(0, 1100, by=100)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+pPBD.1 <- df_prev_by_distance_table %>% filter(site_i > 100 & site_i < 116) %>% filter(site_j > 100 & site_j < 116) %>%
+  ggplot(aes(x = calc_geographic_pw_dist, y = prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "NE Region (km)", limits=c(0, 100), breaks = seq(0, 100, by=10)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+pPBD.2 <- df_prev_by_distance_table %>% filter(site_i > 200 & site_i < 207) %>% filter(site_j > 200 & site_j < 207) %>%
+  ggplot(aes(x = calc_geographic_pw_dist, y = prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "SE Region (km)", limits=c(0, 100), breaks = seq(0, 100, by=10)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+pPBD.3 <- df_prev_by_distance_table %>% filter(site_i > 300 & site_i < 307) %>% filter(site_j > 300 & site_j < 307) %>%
+  ggplot(aes(x = calc_geographic_pw_dist, y = prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "SW Region (km)", limits=c(0, 100), breaks = seq(0, 100, by=10)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+pPBD.4 <- df_prev_by_distance_table %>% filter(site_i > 400 & site_i < 407) %>% filter(site_j > 400 & site_j < 407) %>%
+  ggplot(aes(x = calc_geographic_pw_dist, y = prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "WC Region (km)", limits=c(0, 100), breaks = seq(0, 100, by=10)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+pPBD.5 <- df_prev_by_distance_table %>% filter(site_i > 500 & site_i < 507) %>% filter(site_j > 500 & site_j < 507) %>%
+  ggplot(aes(x = calc_geographic_pw_dist, y = prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "CP Region (km)", limits=c(0, 100), breaks = seq(0, 100, by=10)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+#Code to print a top panel showing comparisons across all regions
+#Making a list of graph objects
+# l.PBD <- list(pPBD.all, pPBD.1, pPBD.2, pPBD.3, pPBD.4, pPBD.5)
+#Using grid.arrange to plot all regions above, each region separately below
+# grid.arrange(grobs = l.PBD, layout_matrix = rbind(c(NA, 1, 1, 1, NA),
+#                                                   c(2, 3, 4, 5, 6)))
+
+
+grid.arrange(pPBD.1, pPBD.2, pPBD.3, pPBD.4, pPBD.5, nrow = 1)
+```
+
+
+***
+***
+
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+### Section 5 | Age and sex structure analysis
+
+</div>
+
+***
+***
+
+#### (5.01) Determining the frequency of each age and sex bin
+
+- Setting age bin boundaries in 5 year increments
+
+(5.01) Determining the frequency (% of individuals) for age bins for each region
+```{r 5.01, eval = TRUE}
+f.age_bins <- function(df.age_data){
+
+  df.age_data <- df.age_data %>% filter(time_point_code == 3)
+ 
+  m.all <- df.age_data %>% filter(sex == "male")
+  f.all <- df.age_data %>% filter(sex == "female")
+  m.inf <- df.age_data %>% filter(sex == "male")   %>% filter(rdt_result == 1)
+  f.inf <- df.age_data %>% filter(sex == "female") %>% filter(rdt_result == 1)
+  
+  m.all <- data.frame(count = table(cut(m.all$ageyears, seq(0, 100, by=5), right=FALSE))) %>% 
+    rename(range = count.Var1, count.m.all = count.Freq) %>% mutate(perc.m.all = count.m.all/length(m.all$unique_ind_id)*100)
+  f.all <- data.frame(count = table(cut(f.all$ageyears, seq(0, 100, by=5), right=FALSE))) %>% 
+    rename(range = count.Var1, count.f.all = count.Freq) %>% mutate(perc.f.all = count.f.all/length(f.all$unique_ind_id)*100)
+  m.inf <- data.frame(count = table(cut(m.inf$ageyears, seq(0, 100, by=5), right=FALSE))) %>% 
+    rename(range = count.Var1, count.m.inf = count.Freq) %>% mutate(perc.m.inf = count.m.inf/length(m.inf$unique_ind_id)*100)
+  f.inf <- data.frame(count = table(cut(f.inf$ageyears, seq(0, 100, by=5), right=FALSE))) %>% 
+    rename(range = count.Var1, count.f.inf = count.Freq) %>% mutate(perc.f.inf = count.f.inf/length(f.inf$unique_ind_id)*100)
+
+  df.r <- full_join(m.all, f.all, by = "range") %>% full_join(m.inf, by = "range") %>% full_join(f.inf, by = "range") %>%
+    select(range, perc.m.all, perc.f.all, perc.m.inf, perc.f.inf) %>% 
+    melt(id.vars = "range") %>% 
+    mutate(sex = case_when(
+      variable == "perc.m.all" | variable == "perc.m.inf" ~ "male",
+      variable == "perc.f.all" | variable == "perc.f.inf" ~ "female")) %>%
+    mutate(rdt = case_when(
+      variable == "perc.m.all" | variable == "perc.f.all" ~ 0,
+      variable == "perc.m.inf" | variable == "perc.f.inf" ~ 1))
+  return(df.r)
+}
+
+r1.age <- f.age_bins(rdt_data %>% filter(region_id == 1))
+r2.age <- f.age_bins(rdt_data %>% filter(region_id == 2))
+r3.age <- f.age_bins(rdt_data %>% filter(region_id == 3))
+r4.age <- f.age_bins(rdt_data %>% filter(region_id == 4))
+r5.age <- f.age_bins(rdt_data %>% filter(region_id == 5))
+```
+
+***
+
+#### (5.02) Visualizing the age and sex structure results
+
+- Plotting as age structure diagrams (with females and males mirrored)
+  - Comparing the age distribution of infections to the age distribution of the population for each region
+- Based in part on:
+  - [Simpler population pyramid in ggplot2 tutorial](https://stackoverflow.com/questions/14680075/simpler-population-pyramid-in-ggplot2)
+
+***
+
+**Figure 5.02** | Distribution of infections among age and sex classes
+
+```{r 5.02, eval = TRUE, fig.height=5, fig.width = 10}
+pA.mods <- list(
+  scale_colour_manual(values = c("dimgray", "tomato")),
+  scale_fill_manual(values = c("dimgray", "tomato")),
+  scale_alpha_manual(values = c(0.8, 0.2)),
+  scale_x_continuous(limits=c(-35, 35), labels = abs),
+  #scale_x_symmetric(labels = abs),
+  ylab("Age bin (years)"), xlab("Percent"),
+  theme_bw(),
+  rremove("legend"),
+  annotate(geom="text", x=-29, y=20, label="Male"),
+  annotate(geom="text", x= 27, y=20, label="Female")
+)
+
+
+pAr1 <- r1.age %>% ggplot(mapping = aes(x = ifelse(test = sex == "male", yes = -value, no = value), 
+                                y = range, 
+                                fill = factor(rdt),
+                                color = factor(rdt),
+                                alpha = factor(rdt))) +
+  geom_col(position ="identity") +
+  labs(title="Region 1 (NE)") +
+  pA.mods
+
+pAr2 <- r2.age %>% ggplot(mapping = aes(x = ifelse(test = sex == "male", yes = -value, no = value), 
+                                y = range, 
+                                fill = factor(rdt),
+                                color = factor(rdt),
+                                alpha = factor(rdt))) +
+  geom_col(position ="identity") +
+  labs(title = "Region 2 (SE)") +
+  pA.mods
+
+pAr3 <- r3.age %>% ggplot(mapping = aes(x = ifelse(test = sex == "male", yes = -value, no = value), 
+                                y = range, 
+                                fill = factor(rdt),
+                                color = factor(rdt),
+                                alpha = factor(rdt))) +
+  geom_col(position ="identity") +
+  labs(title = "Region 3 (SW)") +
+  pA.mods
+
+pAr4 <- r4.age %>% ggplot(mapping = aes(x = ifelse(test = sex == "male", yes = -value, no = value), 
+                                y = range, 
+                                fill = factor(rdt),
+                                color = factor(rdt),
+                                alpha = factor(rdt))) +
+  geom_col(position ="identity") +
+  labs(title = "Region 4 (WC)") +
+  pA.mods
+
+pAr5 <- r5.age %>% ggplot(mapping = aes(x = ifelse(test = sex == "male", yes = -value, no = value), 
+                                y = range, 
+                                fill = factor(rdt),
+                                color = factor(rdt),
+                                alpha = factor(rdt))) +
+  geom_col(position ="identity") +
+  labs(title = "Region 5 (CP)") +
+  pA.mods
+
+#Not printing R5 (too few positives)
+grid.arrange(pAr1, pAr2, pAr3, pAr4, nrow = 1)
+
+```
+
+
+***
+***
+
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+### Section 6 | Analysing the distribution of infections among households
+
+</div>
+
+***
+***
+
+Comparing the distribution of infected individuals among households to that expected by chance using a **non-parametric bootstrap approach**: Comparing the number of households with a given number of infections to the number expected if infected individuals were randomly re-assigned to households (permutation test)
+
+Note: The `hh_infs_site_table` created above contains the observed numbers of hhs with a given number of infected individuals for a site
+
+***
+
+#### (6.01) Writing a bootstrap resampling function to generate permutations of the RDT outcomes
+
+- Bootstrap resampling function `b.resample()`:
+  - Inputs:
+    - A vector containing a site's RDT results as a series of 1s and 0s
+    - An integer specifying the number of random resamples to perform (default is 10,000)
+  - Using `sapply()` instead of `lapply()` to return a matrix/vector instead of a list
+  - The`function(i)` parameter is just a place holder to allow calling a function with some input parameters
+  - `sample()` with `replace = F` simply reshuffles the inputted vector of 0s and 1s randomly
+  - Output: a matrix with the random resample results
+    - Number of rows = length of the site's RDT results vector
+    - Number of columns = the number of resamples performed
+
+```{r 6.01, eval = TRUE}
+b.resample <- function(rdt_results_v, num_of_resamples = 10000){
+  resamples.matrix <- sapply(1:num_of_resamples, function(i) sample(rdt_results_v, replace=F))
+  return(resamples.matrix) 
+}
+```
+
+***
+
+#### (6.02) Writing additional functions to generate and analyze simulated hh infection distributions:
+
+(1) `f.hh_inf_permutations`: Creates 10,000 randomly reshuffled vectors of rdt infection outcomes
+(2) `f.hh_0inf_counts`: Counts the number of households with 0 infections in the permutations
+(3) `f.hh_inf_sim_bounds`: Determines the 0.025, median, and 0.975 bounds for the number of households with 0 infections
+(4) `f.nonparam_hh_sim_data`: Calls the other functions and assembles a data frame with the results of the nonparametric bootstrapping
+
+```{r 6.02.1, eval = TRUE}
+#F1
+#Inputs:  Vectors of hh_ids and their corresponding rdt_results + the number of bootstrap resamples to perform
+#Outputs: A data frame with:
+#   columns: hh_id, resample 1, 2, 3, ... 10,000
+#   rows: unique_ind_id of individual 1, 2, 3, ... number of individuals for that site
+f.hh_inf_permutations <- function(hh_id_v, rdt_result_v, num_resamples){
+  df_hh_inf_permutations <- data.frame(
+    hh_id = hh_id_v,
+    b.resample(rdt_result_v, num_resamples)
+  )
+  return(df_hh_inf_permutations)
+}
+```
+
+```{r 6.02.2, eval = TRUE}
+#F2
+#Inputs:  A data frame with the 10,000 reshuffled rdt_result vectors and their corresponding hh_ids
+#Outputs: A vector with the number of households with 0 infections for permutation 1, 2, 3, ... 10,000
+f.hh_0inf_counts <- function(df_hh_inf_permutations){
+  v_hh_0inf_counts <- rep(NA, length(df_hh_inf_permutations)-1)
+  #Creating a for loop to take each column/permutation. Starting at i+1 because the first column is the hh_id
+  for(i in 1:(length(df_hh_inf_permutations)-1)){
+    df_hh_id_i <- data.frame(
+      hh_id  = as.numeric(df_hh_inf_permutations[ ,1]),
+      perm_i = as.numeric(df_hh_inf_permutations[ ,i+1])
+    )
+    #Grouping by hh_id and using summarize() to calculate the number of infections in each hh in each permutation
+    dfg_hh_id_i <- df_hh_id_i %>% 
+      group_by(hh_id) %>% summarize(n_inf_hh_col_i = sum(perm_i), .groups = "drop")
+    #Crating a vector with the number of hhs with 0 infections for each permutation
+    v_hh_0inf_counts[i] <- length(which(dfg_hh_id_i$n_inf_hh_col_i == 0))
+  }
+  return(v_hh_0inf_counts)
+}
+```
+
+```{r 6.02.3, eval = TRUE}
+#F3
+#Determining the 0.025, median, and 0.975 bounds for the number of households with 0 infections for that site
+# ie 95% of the permutations provide a number of households with 0 infections within these bounds
+
+#Inputs:  A vector of the counts of households with 0 infections for the X permutations done above
+#Outputs: A vector with the: (1) 0.025 bound (2) median (3) 0.975 bound
+f.hh_inf_sim_bounds <- function(v_household_inf_counts){
+  #Note that the quantile function will non-integers despite the data being discrete
+  # E.g. the upper bound could be 46.65 households expected to have zero infections. Proceeding with using
+  # the unrounded non-integer such that in this example, an observation of 47 households would be above the 0.975 cut-off
+  hh_inf_sim_bounds_025    <- as.numeric(quantile(v_household_inf_counts, 0.025))
+  hh_inf_sim_bounds_median <- median(v_household_inf_counts)
+  hh_inf_sim_bounds_975    <- as.numeric(quantile(v_household_inf_counts, 0.975))
+  
+  v_hh_inf_sim_bounds      <- c(hh_inf_sim_bounds_025, hh_inf_sim_bounds_median, hh_inf_sim_bounds_975)
+
+  return(v_hh_inf_sim_bounds)
+}
+```
+
+```{r 6.02.4, eval = TRUE}
+#F4
+#Writing a function to assemble the final dataframe:
+# Columns: site_id, region_id, n_hh_site, n_rdt_pos_site, observed number of hhs with 0 infections +
+#  expectations from simulations: (1) 0.025 bound (2) median (3) 0.975 bound
+
+#For each site, passing the data to the three functions above
+f.nonparam_hh_sim_data <- function(rdt_data_cleaned, num_resamples = 10000){
+  #Copying the code used to make the hh_infs_site_table to extract the site_id and observed number of hhs with 0 infections
+  cg1_nonparam_hh_sim_data <- rdt_data_cleaned %>% group_by(hh_id) %>% summarize(
+      region_id        = unique(region_id),
+      site_id          = unique(site_id),
+      hh_rdt_pos_count = sum(rdt_result), .groups = "drop") %>% 
+    group_by(site_id) %>% summarize(
+      region_id        = unique(region_id),
+      n_hh_site        = length(hh_id),
+      n_rdt_pos_site   = sum(hh_rdt_pos_count),
+      obs_n_hh_0_pos   = length(which(hh_rdt_pos_count == '0')), .groups = "drop")
+  #Creating a vector that is the site_ids
+  v_site_ids <- unique(rdt_data_cleaned$site_id)
+  
+  #Making the empty list_nonparam_hh_sim_data as a placeholder that will later hold the vectors with the hh_inf_sim_bounds data for each site
+  list_nonparam_hh_sim_data <- list()
+  #Passing each site to the 3 functions defined above
+  for(i in 1:length(v_site_ids)){
+    df_site_i <- rdt_data_cleaned[rdt_data_cleaned$site_id == v_site_ids[i], ]
+    list_nonparam_hh_sim_data[[i]] <- f.hh_inf_sim_bounds(
+                                      f.hh_0inf_counts(
+                                      f.hh_inf_permutations(df_site_i$hh_id, df_site_i$rdt_result, num_resamples)))
+  }
+  #Extracting the list_nonparam_hh_sim_data into a matrix then data frame
+  cg2_nonparam_hh_sim_data <- as.data.frame(matrix(unlist(list_nonparam_hh_sim_data), 
+                                                   nrow=length(list_nonparam_hh_sim_data), byrow=T))
+  colnames(cg2_nonparam_hh_sim_data) <- c("bound_025", "median", "bound_975")
+  #Binding cg1_nonparam_hh_sim_data and cg2_nonparam_hh_sim_data
+  nonparam_hh_sim_data <- cbind(cg1_nonparam_hh_sim_data, cg2_nonparam_hh_sim_data)
+  return(nonparam_hh_sim_data)
+}
+```
+
+***
+
+#### (6.03) Performing the comparison of observed and expected household counts (non-parametric bootstrap)
+```{r 6.03.1, eval = TRUE}
+#Calling the f.nonparam_hh_sim_data on the rdt_data and storing as nonparam_hh_sim_data
+nonparam_hh_sim_data <- f.nonparam_hh_sim_data(rdt_data %>% filter(time_point_code == 3), 1000)
+```
+
+```{r 6.03.2, eval = TRUE}
+#Printing the nonparam_hh_sim_data
+kable(nonparam_hh_sim_data, caption = "Table 6.03.2: Comparing the observed and expected household counts (non-parametric bootstrap)") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 11)
+```
+
+***
+
+#### (6.04) Visualizing the results of the non-parametric bootstrap resampling
+
+***
+
+(6.04.1) For reference, visualizing the distribution of household size (number of individuals per household) by region
+
+**Figure 6.04.1 Distribution of household size by region**
+
+```{r 6.04.1, eval = TRUE, fig.height = 10, fig.width = 5}
+plot.hh_rdt_pos_table <- hh_rdt_pos_table %>% group_by(region_id) %>% mutate(regional_mean = mean(hh_ind_count))
+
+plot.hh_rdt_pos_table %>% ggplot(aes(x=hh_ind_count)) + 
+  geom_histogram(aes(y=..density..), binwidth = 1) +
+  facet_wrap(~region_name, nrow = 5) +
+  scale_x_continuous(breaks = c(2:18)) +
+  xlab("Household size (number of individuals per household)") + ylab("Frequency") +
+  rremove("grid") + 
+  geom_vline(aes(xintercept = regional_mean), linetype="dotted", 
+                color = "#3498DB", size = 1.5) +
+  theme(axis.text.x = element_text(angle=90, hjust=1, size = 7)) + theme_bw()
+```
+*Regional mean household size shown in blue*
+
+***
+
+(6.04.2) Comparing expected and observed levels of household clustering
+
+- To plot, need a data frame that is columns: 
+  - sites 2.1, 2.2, etc (site_id_name)
+  - left  bound of dumbbell (2.5)
+  - right bound of dumbbell (97.5)
+  - Add points: 
+    - Expected median point: Median number of households with 0 infections from permutations
+    - Observed point: Observed number of households with 0 infections
+
+**Figure 6.04.2** | The distribution of infections among households (non-parametric bootstrap)
+```{r 6.04.2, eval = TRUE, fig.height = 7, fig.width = 10}
+#Panel by region?
+#Sort within regions by prevalence?
+#Drop sites with 0, or 1 infection? YES
+#Ifelse to not show median for sites with 1 or 2 infections
+
+#Converting site_id to a factor and manually specifying order so as to sort from high -> low prevalence by region
+plot.nonparam_hh_sim_data <- nonparam_hh_sim_data %>%
+  #Adding better site and region codes
+  full_join(prev_by_site_table %>% select(-c(n_rdt_pos_site, region_id)), by = "site_id") %>%
+  #Adding plot order (from increasing to decreasing prevalence within a region)
+  group_by(region_id) %>% mutate(plot_order = order(order(prev_site))) %>% ungroup() %>%
+  #Calculating regional prevalence for plotting later
+  group_by(region_id) %>% mutate(emp.prev_region = sum(n_rdt_pos_site)/sum(n_site)*100) %>% ungroup() %>%
+  #Calculating as a proportion of households with 1 or more infections
+  mutate(p.obs_hh_0_pos  = obs_n_hh_0_pos/n_hh_site,
+         p.obs_hh_1p_pos = 1 - obs_n_hh_0_pos/n_hh_site,
+         p.0.bound_025   = bound_025/n_hh_site,
+         p.1p.bound_025  = 1 - bound_025/n_hh_site,
+         p.0.median      = median/n_hh_site,
+         p.1p.median     = 1 - median/n_hh_site,
+         p.0.bound_975   = bound_975/n_hh_site,
+         p.1p.bound_975  = 1 - bound_975/n_hh_site) %>%
+  #Matching seasonality
+  filter(time_point_code == 3)
+
+
+#Plotting
+p.hh <- plot.nonparam_hh_sim_data %>% 
+  ggplot(aes(y = reorder(site_code, plot_order), x = p.1p.bound_025, xend = p.1p.bound_975)) + 
+  #Adding the dumbbell
+  geom_dumbbell(size         = 0.7, 
+                color        = "#78909c", 
+                colour_x     = "#78909c", 
+                colour_xend  = "#78909c") +
+  #Removing title and adding y-axis labels
+  labs(x="(B) Proportion of households with one or more infected individuals", y=NULL, title=NULL) +
+  #Flipping the x and y axes so that the dumbbells are vertical rather than horizontal
+  coord_flip() +
+  #Adding a dot for the median of the permutation simulations
+  geom_point(aes(y=reorder(site_code, plot_order), x=p.1p.median), color = "#78909c", size = 0.9) +
+  #Adding a red dot for the observed hh count
+  geom_point(aes(y=reorder(site_code, plot_order), x=p.obs_hh_1p_pos), color = "#E74C3C", size = 1.1) +
+  #Faceting by region
+  facet_wrap(~ region_name, nrow = 1, scales = "free_x") +
+  #Remove the legend
+  rremove("legend") + 
+  #Changing the grid lines
+  theme(panel.grid.major.x=element_line(size=0.10),
+        panel.grid.major.y=element_line(size=0.15),
+        panel.background = element_rect(fill = "#f5f5f5"),
+        strip.background = element_rect(fill = "#f5f5f5"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        axis.ticks.x = element_blank())
+```
+
+
+**Figure 6.04.3** | Community prevalence is a better predictor of household infection than regional prevalence
+
+```{r 6.04.3, eval = TRUE, fig.height = 7, fig.width = 10}
+#Defining a function that estimates the probability a household of average size (e.g., 4.8 individuals) 
+# would have 1 or more infections given the site or regional prevalence
+f.r.hh <- function(x) (1-(1-x/100)^4.8)*100
+
+#Plotting region vs hh prevalence
+p.r.hh <- plot.nonparam_hh_sim_data %>% filter(prev_site > 0) %>% 
+  ggplot(aes(x = emp.prev_region, y = p.obs_hh_1p_pos*100, label = site_code)) +
+  geom_point() +
+  geom_text_repel(box.padding = 0.75, min.segment.length = 0, size = 2, segment.size = 0.3, segment.alpha = 0.25) +
+  geom_function(fun = f.r.hh, color = "#5D95AF", linetype = "dashed") +
+  xlim(0.0001, 50) + ylim(0, 100) +
+  ylab("(A) Household Prevalence\n(% of households with 1 or more infections)") +
+  xlab("Regional Prevalence\n(% of sampled individuals infected in region)") +
+  theme(panel.grid.major = element_blank(),
+        panel.background = element_rect(fill = "white", color = "black"),
+        axis.ticks = element_blank())
+
+p.s.hh <- plot.nonparam_hh_sim_data %>% filter(prev_site > 0) %>% 
+  ggplot(aes(x = prev_site, y = p.obs_hh_1p_pos*100, label = site_code)) +
+  geom_point() +
+  geom_text_repel(box.padding = 0.75, min.segment.length = 0, size = 2, segment.size = 0.3, segment.alpha = 0.25) +
+  geom_function(fun = f.r.hh, color = "#5D95AF", linetype = "dashed") +
+  xlim(0.0001, 50) + ylim(0, 100) +
+  ylab("Household Prevalence\n(% of households with 1 or more infections)") +
+  xlab("Community Prevalence\n(% of sampled individuals infected in community)") +
+  theme(panel.grid.major = element_blank(),
+        panel.background = element_rect(fill = "white", color = "black"),
+        axis.ticks = element_blank())
+
+grid.arrange(p.r.hh, p.s.hh, nrow = 1)
+```
+
+
+***
+***
+
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+### Section 7 | Variation in prevalence vs time between sampling for sites
+
+</div>
+
+***
+***
+
+Calculating the difference in date of sampling between sites
+
+Note that because sample_date was not recorded in Region 1 (NE) (all samples performed in April 2017), the effect of timing can not be explored
+
+```{r 7.01, eval = TRUE, fig.height = 7, fig.width = 10}
+df.data_diff <- rdt_data %>% filter(time_point_code == 3) %>% group_by(site_id) %>% summarize(max.date = max(sample_date))
+v_date_pw_dist <- as.numeric(dist(df.data_diff$max.date))
+
+#Making a list of site_ids showing the two being compared following the pattern in the pairwise distance vector above
+#For n = 31 sites
+  v.site_ids <- unique(rdt_data$site_id)
+  d.sites_i <- list()
+  d.sites_j <- list()
+  for(a in 1:31){
+    d.sites_i[[a]] <- rep(v.site_ids[a], each = 31 - a)
+  }
+  for(b in 1:30){
+    d.sites_j[[b]] <- v.site_ids[(1+b):31]
+  }
+  #Binding the site_ids to the indices
+  #Binding the difference in date vector calculated above
+  #Binding the difference in prevalence vector calculated in a section above
+  #Removing data from Region 1 (NE) (no sample date data available)
+  df_date_pw_dist <- data.frame(site_i = unlist(d.sites_i), site_j = unlist(d.sites_j), v_date_pw_dist, v_prev_pw_dist) %>%
+    filter(site_i > 200) %>% filter(site_j > 200)
+  
+  #Subsetting by region
+  r2.df_date_pw_dist <- df_date_pw_dist %>% filter(site_i > 200 & site_i < 300) %>% filter(site_j > 200 & site_j < 300)
+  r3.df_date_pw_dist <- df_date_pw_dist %>% filter(site_i > 300 & site_i < 400) %>% filter(site_j > 300 & site_j < 400)
+  r4.df_date_pw_dist <- df_date_pw_dist %>% filter(site_i > 400 & site_i < 500) %>% filter(site_j > 400 & site_j < 500)
+  r5.df_date_pw_dist <- df_date_pw_dist %>% filter(site_i > 500 & site_i < 600) %>% filter(site_j > 500 & site_j < 600)
+```
+
+***
+
+**Figure 7.02** | Length of time between sampling sites vs difference in prevalence observed
+```{r 7.02, eval = TRUE, fig.height = 7, fig.width = 10}
+pPBT.2 <- r2.df_date_pw_dist %>% 
+  ggplot(aes(x = v_date_pw_dist, y = v_prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "SE Region: Number of days between \n sampling at the compared sites", 
+                     limits=c(0, 40), breaks = seq(0, 40, by=7)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+pPBT.3 <- r3.df_date_pw_dist %>% 
+  ggplot(aes(x = v_date_pw_dist, y = v_prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "SW Region: Number of days between \n sampling at the compared sites", 
+                     limits=c(0, 40), breaks = seq(0, 40, by=7)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+pPBT.4 <- r4.df_date_pw_dist %>% 
+  ggplot(aes(x = v_date_pw_dist, y = v_prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "WC Region: Number of days between \n sampling at the compared sites", 
+                     limits=c(0, 40), breaks = seq(0, 40, by=7)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+pPBT.5 <- r5.df_date_pw_dist %>% 
+  ggplot(aes(x = v_date_pw_dist, y = v_prev_pw_dist)) +
+  geom_point() + 
+  scale_x_continuous(name = "CP Region: Number of days between \n sampling at the compared sites", 
+                     limits=c(0, 40), breaks = seq(0, 40, by=7)) +
+  scale_y_continuous(name = "Magnitude of difference in prevalence (%)", limits=c(0, 50), breaks = seq(0, 50, by=10)) +
+  theme_bw()
+
+grid.arrange(pPBT.2, pPBT.3, pPBT.4, pPBT.5, nrow = 2)
+```
+
+
+***
+***
+
+<style>
+div.green { background-color:#d1ebd6; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "green">
+
+### Section 8 | Outputting supplementary data tables
+
+</div>
+
+***
+***
+
+**Supplementary Table 1** Supplementary Table 1.csv contains sampling dates and malaria prevalence data by site and household
+
+Description of column names:
+`site_id` : Numeric identifier for each study site
+`site_code` : Identifier for each study site (includes region code, e.g., `NE` for Northeast Region)
+`time_point_code` : Numeric code for the seasonal time point of sampling
+`site_tp` : A combination of the `site_id` and `time_point_code`
+`time_point_date` : The time period over which sampling for that time point occurred
+`sample_date_start` : First day of sampling for that site for that time point
+`sample_date_end` : Last day of sampling for that site for that time point
+`region_id` : Numeric identifier for each study region
+`region_name` : Includes the name of the urban center nearest the rural study communities
+`region_peak_mo` : The estimated month of peak malaria incidence for that region per [Arambepola et al 2020](https://pubmed.ncbi.nlm.nih.gov/33093622/)
+`n_site` : Number of individuals sampled
+`n_rdt_pos_site` : Number of RDT positive individuals observed
+`prev_site` : Proportion of sampled individuals that were RDT positive
+`prev.2_10` : Proportion of sampled children aged 2-10 years that were RDT positive
+`n_hh_site` : Number of households sampled
+`prev_hh` : Proportion of sampled households with 1+ RDT positive individuals
+`adj_cons_area`: Nearest conservation priority or officially protected area(s) for each study site
+`dist_to_cons_area` : Approximate distance in km of study site to forest edge or edge of conservation area
+`district` : Districts are second-level administrative divisions in Madagascar
+`commune` : Communes are third-level administrative divisions in Madagascar
+
+```{r 8.01, eval = TRUE, fig.height = 7, fig.width = 10}
+#Recalculating prevalence for ages 2-10
+prev.2_10 <- rdt_data %>% filter(ageyears > 1.9 & ageyears < 10.1) %>% 
+  mutate(site_tp = paste0(site_id, ".", time_point_code)) %>%
+  group_by(site_tp) %>% summarize(prev.2_10 = sum(rdt_result)/length(site_tp)*100, .groups = "drop")
+
+supp.t1 <- rdt_data %>% group_by(site_id, time_point_code) %>% 
+  #Adding sample_date for each site
+  summarize(sample_date_start = min(sample_date), sample_date_end = max(sample_date), .groups	= "drop") %>% 
+  mutate(site_tp = paste0(site_id, ".", time_point_code)) %>%
+  select(site_tp, sample_date_start, sample_date_end) %>%
+  #Adding site and hh prev by joining with the prev_by_site_and_hh_table
+  full_join(prev_by_site_and_hh_table, by = "site_tp") %>%
+  mutate(prev_site = round(prev_site, 2)) %>%
+  mutate(prev_hh = 100-prev_hh_0_pos) %>%
+  mutate(prev_hh = round(prev_hh, 2)) %>%
+  #Adding prev.2_10 by joining with the prev.2_10 table
+  full_join(prev.2_10, by = "site_tp") %>%
+  mutate(prev.2_10 = round(prev.2_10, 2)) %>%
+  mutate(region_peak_mo = case_when(
+    region_id == 1 ~ "April",
+    region_id == 2 ~ "January",
+    region_id == 3 ~ "May",
+    region_id == 4 ~ "April",
+    region_id == 5 ~ "May",
+    TRUE ~ NA_character_)) %>%
+  mutate(adj_cons_area = case_when(
+    site_id == 101 ~ "Makira Natural Park",
+    site_id == 102 ~ "Makira Natural Park",
+    site_id == 103 ~ "Makira Natural Park",
+    site_id == 104 ~ "Makira Natural Park",
+    site_id == 105 ~ "Masoala National Park",
+    site_id == 106 ~ "Masoala National Park",
+    site_id == 107 ~ "Makira Natural Park",
+    site_id == 201 ~ "Kianjavato Forest",
+    site_id == 202 ~ "Kianjavato Forest",
+    site_id == 203 ~ "Kianjavato Forest",
+    site_id == 204 ~ "Kianjavato Forest",
+    site_id == 205 ~ "Kianjavato Forest",
+    site_id == 206 ~ "Kianjavato Forest",
+    site_id == 301 ~ "Ifaty Forest / Ranobe PK32",
+    site_id == 302 ~ "Ifaty Forest / Ranobe PK32",
+    site_id == 303 ~ "Ifaty Forest / Ranobe PK32",
+    site_id == 304 ~ "Ifaty Forest / Ranobe PK32",
+    site_id == 305 ~ "Ifaty Forest / Ranobe PK32",
+    site_id == 306 ~ "Ifaty Forest / Ranobe PK32",
+    site_id == 401 ~ "Mangoky-Ihotry Protected Harmonious Landscape",
+    site_id == 402 ~ "Mangoky-Ihotry Protected Harmonious Landscape",
+    site_id == 403 ~ "Mangoky-Ihotry Protected Harmonious Landscape",
+    site_id == 404 ~ "Mikea National Park",
+    site_id == 405 ~ "Mikea National Park",
+    site_id == 406 ~ "Mikea National Park",
+    site_id == 501 ~ "Marolambo National Park",
+    site_id == 502 ~ "Marolambo National Park",
+    site_id == 503 ~ "Marolambo National Park",
+    site_id == 504 ~ "Ibity Massif Protected Harmonious Landscape",
+    site_id == 505 ~ "Ibity Massif Protected Harmonious Landscape",
+    site_id == 506 ~ "Ibity Massif Protected Harmonious Landscape",
+    TRUE ~ NA_character_)) %>%
+  mutate(dist_to_cons_area = case_when(
+    site_id == 101 ~ "4.1 km",
+    site_id == 102 ~ "2.4 km",
+    site_id == 103 ~ "13.2 km",
+    site_id == 104 ~ "8.1 km",
+    site_id == 105 ~ "3.0 km",
+    site_id == 106 ~ "1.2 km",
+    site_id == 107 ~ "9.2 km",
+    site_id == 201 ~ "48.2 km",
+    site_id == 202 ~ "60.9 km",
+    site_id == 203 ~ "54.0 km",
+    site_id == 204 ~ "49.3 km",
+    site_id == 205 ~ "44.7 km",
+    site_id == 206 ~ "26.8 km",
+    site_id == 301 ~ "9.4 km",
+    site_id == 302 ~ "13.4 km",
+    site_id == 303 ~ "15.2 km",
+    site_id == 304 ~ "1.9 km",
+    site_id == 305 ~ "4.6 km",
+    site_id == 306 ~ "8.5 km",
+    site_id == 401 ~ "1.1 km",
+    site_id == 402 ~ "2.3 km",
+    site_id == 403 ~ "3.3 km",
+    site_id == 404 ~ "10.2 km",
+    site_id == 405 ~ "6.3 km",
+    site_id == 406 ~ "3.4 km",
+    site_id == 501 ~ "24.2 km",
+    site_id == 502 ~ "23.9 km",
+    site_id == 503 ~ "24.5 km",
+    site_id == 504 ~ "22.1 km",
+    site_id == 505 ~ "26.9 km",
+    site_id == 506 ~ "26.4 km",
+    TRUE ~ NA_character_)) %>% 
+  mutate(district = case_when(
+    site_id == 101 ~ "Maroantsetra",
+    site_id == 102 ~ "Maroantsetra",
+    site_id == 103 ~ "Maroantsetra",
+    site_id == 104 ~ "Maroantsetra",
+    site_id == 105 ~ "Maroantsetra",
+    site_id == 106 ~ "Maroantsetra",
+    site_id == 107 ~ "Maroantsetra",
+    site_id == 201 ~ "Mananjary",
+    site_id == 202 ~ "Mananjary",
+    site_id == 203 ~ "Mananjary",
+    site_id == 204 ~ "Mananjary",
+    site_id == 205 ~ "Mananjary",
+    site_id == 206 ~ "Mananjary",
+    site_id == 301 ~ "Toliara II",
+    site_id == 302 ~ "Toliara II",
+    site_id == 303 ~ "Toliara II",
+    site_id == 304 ~ "Toliara II",
+    site_id == 305 ~ "Toliara II",
+    site_id == 306 ~ "Toliara II",
+    site_id == 401 ~ "Morombe",
+    site_id == 402 ~ "Morombe",
+    site_id == 403 ~ "Morombe",
+    site_id == 404 ~ "Morombe",
+    site_id == 405 ~ "Morombe",
+    site_id == 406 ~ "Morombe",
+    site_id == 501 ~ "Fandriana",
+    site_id == 502 ~ "Fandriana",
+    site_id == 503 ~ "Fandriana",
+    site_id == 504 ~ "Ambatofinandrahana",
+    site_id == 505 ~ "Ambositra",
+    site_id == 506 ~ "Ambositra",
+    TRUE ~ NA_character_)) %>%
+  mutate(commune = case_when(
+    site_id == 101 ~ "Antsirabe Sahatany",
+    site_id == 102 ~ "Antsirabe Sahatany",
+    site_id == 103 ~ "Rantabe",
+    site_id == 104 ~ "Anandrivola",
+    site_id == 105 ~ "Mahalevona",
+    site_id == 106 ~ "Ambanizana",
+    site_id == 107 ~ "Ankofa",
+    site_id == 201 ~ "Tsaravary",
+    site_id == 202 ~ "Mahatsara Atsimo",
+    site_id == 203 ~ "Mahatsara Atsimo",
+    site_id == 204 ~ "Ankatafana",
+    site_id == 205 ~ "Ankatafana",
+    site_id == 206 ~ "Antsenavolo",
+    site_id == 301 ~ "Tsianisiha",
+    site_id == 302 ~ "Maromiandra",
+    site_id == 303 ~ "Maromiandra",
+    site_id == 304 ~ "Belalanda",
+    site_id == 305 ~ "Belalanda",
+    site_id == 306 ~ "Belalanda",
+    site_id == 401 ~ "Morombe",
+    site_id == 402 ~ "Morombe",
+    site_id == 403 ~ "Morombe",
+    site_id == 404 ~ "Basibasy",
+    site_id == 405 ~ "Basibasy",
+    site_id == 406 ~ "Basibasy",
+    site_id == 501 ~ "Alakamisy Ambohimahazo",
+    site_id == 502 ~ "Alakamisy Ambohimahazo",
+    site_id == 503 ~ "Alakamisy Ambohimahazo",
+    site_id == 504 ~ "Ambondromisotra",
+    site_id == 505 ~ "Ilaka Centre",
+    site_id == 506 ~ "Ilaka Centre",
+    TRUE ~ NA_character_)) %>%
+  select(site_id, site_code, time_point_code, site_tp, 
+         time_point_date, sample_date_start, sample_date_end,
+         region_id, region_name, region_peak_mo,
+         n_site, n_rdt_pos_site, prev_site, prev.2_10, n_hh_site, prev_hh, 
+         adj_cons_area, dist_to_cons_area,
+         district, commune)
+
+#Exporting
+write_csv(supp.t1, "Supplementary Table 1.csv")
+```
+
+
+**Additional File 1** Additional File 1.csv contains the malaria rapid diagnostic test outcome data as a line list
+
+Description of column names:
+`unique_ind_id` : Unique numeric identifier for each sampled individual
+`region_id` : Numeric identifier for each study region
+`region_name` : Identifier for each study region (includes region code, e.g., `NE` for Northeast Region) and name of nearest urban center for which the region is named
+`site_code` : Identifier for each study site (includes region code, e.g., `NE` for Northeast Region)
+`site_id` : Numeric identifier for each study site
+`hh_id` : Numeric identifier for each sampled household
+`ageyears` : Age in years for the individual
+`sex` : Male or female
+`time_point_code` : Numeric code for the seasonal time point of sampling
+`time_point_date` : The time period over which sampling for that time point occurred
+`sample_date` : Day of sampling (day RDT was performed) for the individual
+`rdt_result` : Negative (0) or positive (1) result for malaria RDT (see methods)
+
+```{r 8.02, eval = TRUE, fig.height = 7, fig.width = 10}
+#Additional File 1 = simply writing the rdt_data data frame to a csv file
+write_csv(rdt_data, "Additional File 1.csv")
+```
+
